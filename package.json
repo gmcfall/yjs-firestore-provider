@@ -1,6 +1,6 @@
 {
     "name": "@gmcfall/yjs-firestore-provider",
-    "version": "1.0.0-rc.1",
+    "version": "1.0.0-rc.2",
     "main": "build/index.cjs.js",
     "module": "build/index.esm.js",
     "types": "build/build/index.d.ts",
