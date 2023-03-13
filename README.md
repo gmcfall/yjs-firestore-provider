@@ -150,11 +150,12 @@ but it is helpful if you want to use a custom configuration.
    Yjs document.
 
 The `FirestoreProvider` manages data at the following paths in Firestore:
-    - `{basePath}/yjs/history` : The consolidated history
-    - `{basePath}/yjs/history/updates/{blobId}`: A composite blob of update events
-    - `{basePath}/yjs/time`: A transient document used to compute the differece between time
-        on the Firestore server and time on the client. For details, see 
-        [How does FirebaseProvider know when a blob has exceeded its time-to-live?](#how-does-firestoreprovider-know-when-a-blob-has-exceeded-its-time-to-live)
+
+- `{basePath}/yjs/history` : The consolidated history
+- `{basePath}/yjs/history/updates/{blobId}`: A composite blob of update events
+- `{basePath}/yjs/time`: A transient document used to compute the differece between time
+    on the Firestore server and time on the client. For details, see 
+    [How does FirebaseProvider know when a blob has exceeded its time-to-live?](#how-does-firestoreprovider-know-when-a-blob-has-exceeded-its-time-to-live)
 
 ## Frequently asked questions
 
