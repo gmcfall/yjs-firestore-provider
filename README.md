@@ -149,6 +149,13 @@ but it is helpful if you want to use a custom configuration.
    point in time. That history is stored in Firestore, and it grows over the lifetime of the 
    Yjs document.
 
+The `FirestoreProvider` manages data at the following paths in Firestore:
+    - `{basePath}/yjs/history` : The consolidated history
+    - `{basePath}/yjs/history/updates/{blobId}`: A composite blob of update events
+    - `{basePath}/yjs/time`: A transient document used to compute the differece between time
+        on the Firestore server and time on the client. For details, see 
+        [How does FirebaseProvider know when a blob has exceeded its time-to-live?](#how-does-firestoreprovider-know-when-a-blob-has-exceeded-its-time-to-live)
+
 ## Frequently asked questions
 
 ### Why merge update events into a composite blob?
@@ -213,8 +220,8 @@ an in-memory cache of those blob documents, and hence it can inspect the timesta
 provider compares the timestamp with the current time to determine if a given blob has exceeded its
 time-to-live.
 
-But the timestamps record the UTC time according to the Firestore server. There is no guarantee that the
-clock on the local client is accurate.
+Each timestamp records the UTC time according to the Firestore server which has a guarantee on the
+accuracy of its clock. But there is no guarantee that the clock on the local client is accurate.
 
 Consequently, FirestoreProvider estimates the difference between the local clock and the server's
 clock by executing a block of code like this snippet:
