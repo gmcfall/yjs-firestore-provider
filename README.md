@@ -296,7 +296,7 @@ following parameters:
     changes before a blob is emitted, set to 600 ms by default.  Setting this parameter to a smaller 
     value will reduce latency, but again, at the penalty of increased cost due to more frequent writes.
     Setting it to a higher value will increase latency and reduce cost. For comparison, the average person
-    types at the rate of one letter every 300 ms.
+    types at the rate of one character every 300 ms.
 - `blobTimeToLive`: The maximum amount of time in milliseconds that a blob of updates can live in Firestore
     before it is removed and merged into the consolidated history. By default, this parameter is set to
     10000 (i.e. 10 seconds).  As a best practice, applications should stick with this default.
