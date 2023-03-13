@@ -307,7 +307,7 @@ const ydoc = new Y.Doc();
 const basePath = ["articles", articleId];
 const provider = new FirestoreProvider(firebaseApp, ydoc, basePath, {
     maxUpdatesPerBlob: 10,
-    maxUpdatePause: 300
+    maxUpdatePause: 500
 });
 ```
 # Limitations
