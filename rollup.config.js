@@ -27,6 +27,11 @@ const config = {
       declarationDir: "build",
       exclude: ["**/*.test.*", "**/*.stories.*", "./src/test-utils/*"],
     })
+  ],
+  external: [
+    "@firebase",
+    "@firebase/app",
+    "@firebase/firestore"
   ]
 };
 
