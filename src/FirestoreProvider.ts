@@ -1,13 +1,15 @@
 import { FirebaseApp } from "@firebase/app";
 import { Bytes, collection, deleteDoc, doc, Firestore, getDoc, getDocs, getFirestore, onSnapshot, query, runTransaction, serverTimestamp, setDoc, Timestamp, Unsubscribe, writeBatch } from "@firebase/firestore";
 import { Observable } from "lib0/observable";
+import * as awarenessProtocol from 'y-protocols/awareness';
 import * as Y from 'yjs';
 import { currentTime, timeSinceEpoch } from "./time";
+import { getTimePath } from "./y-common";
+import { FirestoreWebrtcProvider } from "./y-webrtc";
 
 const SHUTDOWN = "shutdown";
 const YJS_HISTORY_UPDATES = "/yjs/history/updates";
 const YJS_HISTORY = "/yjs/history";
-const YJS_TIME = "/yjs/time";
 
 interface DocUpdate {
     /** A timestamp when the update was saved */
@@ -98,6 +100,11 @@ export interface FirestoreProviderConfig {
      * 10000 (i.e. 10 seconds).  As a best practice, applications should stick with this default.
      */
     blobTimeToLive?: number;
+
+    /**
+     * A flag that determines whether awareness should be disabled. The default value is `false`.
+     */
+    disableAwareness?: boolean;
 }
 
 
@@ -107,6 +114,7 @@ export interface FirestoreProviderConfig {
 export class FirestoreProvider extends Observable<any> {
     readonly doc: Y.Doc;
     error?: Error;
+    awareness: awarenessProtocol.Awareness | null = null;
     private firebaseApp: FirebaseApp;
     private unsubscribe?: Unsubscribe;
     private clock = 0;
@@ -134,6 +142,8 @@ export class FirestoreProvider extends Observable<any> {
     private updateMap = new Map<string, UpdateWithTimestamp>();
     private isStopped = false;
 
+    private webrtcProvider: FirestoreWebrtcProvider | null = null;
+
     constructor(firebaseApp: FirebaseApp, ydoc: Y.Doc, path: string[], config?: FirestoreProviderConfig) {
         super();
         this.firebaseApp = firebaseApp;
@@ -144,6 +154,12 @@ export class FirestoreProvider extends Observable<any> {
         this.maxUpdatesPerBlob = config?.maxUpdatesPerBlob === undefined ? 20    : config.maxUpdatesPerBlob;
         this.blobTimeToLive =       config?.blobTimeToLive === undefined ? 10000 : config.blobTimeToLive;
 
+        const enableAwareness = !Boolean(config?.disableAwareness);
+        if (enableAwareness) {
+            this.webrtcProvider = new FirestoreWebrtcProvider(firebaseApp, this.basePath, ydoc)
+            this.awareness = this.webrtcProvider.awareness;
+        }
+
         const db = getFirestore(firebaseApp);
         const self = this;
 
@@ -151,6 +167,8 @@ export class FirestoreProvider extends Observable<any> {
         this.compressIntervalId = setInterval(() => {
             self.compress();
         }, this.blobTimeToLive + extra)
+
+       
 
         this.updateHandler = (update, origin) => {
 
@@ -246,7 +264,7 @@ export class FirestoreProvider extends Observable<any> {
                     
                 })
                 if (mustShutdown) {
-                    this.shutdown();
+                    this.destroy();
                 }
             }, (error) => {
                 console.error(`An error occurred while listening for Yjs updates at "${collectionPath}"`, error);
@@ -260,17 +278,22 @@ export class FirestoreProvider extends Observable<any> {
     }
 
     destroy() {
+        console.log('destory FirestoreProvider')
         this.save();
+        if (this.webrtcProvider) {
+            this.webrtcProvider.destroy();
+            this.webrtcProvider = null;
+        }
         this.shutdown();
         super.destroy();
     }
 
     /**
-     * Shutdown this provider, and permanently delete the 
+     * Destroy this provider, and permanently delete the 
      * Yjs data 
      */
     async deleteYjsData() {
-        this.shutdown();
+        this.destroy();
         const set = new Set<string>(this.updateMap.keys());
         const path = this.basePath.split('/');
         await deleteYjsData(this.firebaseApp, path, set);
@@ -283,7 +306,7 @@ export class FirestoreProvider extends Observable<any> {
         }
         const baselinePath = this.basePath + YJS_HISTORY;
         const updatesPath = this.basePath + YJS_HISTORY_UPDATES;
-        const timePath = this.basePath + YJS_TIME;
+        const timePath = getTimePath(this.basePath);
         
         const now = await currentTime(this.firebaseApp, timePath);
         const zombies = new Set<string>();
@@ -337,6 +360,7 @@ export class FirestoreProvider extends Observable<any> {
     }
 
     private shutdown() {
+        console.log('shutdown invoked');
         if (!this.isStopped) {
             this.isStopped = true;
             this.doc.off("update", this.updateHandler);
@@ -359,6 +383,11 @@ export class FirestoreProvider extends Observable<any> {
                 delete this.cache;
             }
             this.updateCount=0;
+
+            const room  = this.webrtcProvider?.room;
+            if (room) {
+                room.destroy();
+            }
         }
     }
 
